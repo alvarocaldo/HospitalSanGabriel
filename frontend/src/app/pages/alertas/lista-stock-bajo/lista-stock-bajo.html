@@ -1,0 +1,210 @@
+<div class="space-y-6">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">
+        <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+        Alertas de inventario
+      </div>
+      <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">Stock bajo</h2>
+      <p class="mt-1 text-sm text-slate-500">
+        Productos cuyo stock es igual o inferior al mínimo definido. Priorice su reposición.
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" class="btn-secondary" [disabled]="cargando()" (click)="cargar()">
+        <app-icon name="arrow-down-tray" [class.animate-spin]="cargando()" />
+        Actualizar
+      </button>
+      <a routerLink="/alertas/vencimientos" class="btn-secondary">
+        <app-icon name="clock" />
+        Vencimientos
+      </a>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div
+      class="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+      role="alert"
+    >
+      <app-icon name="x-circle" class="mt-0.5 text-red-500" />
+      <p class="flex-1 font-medium">{{ error() }}</p>
+      <button type="button" class="text-xs font-semibold underline" (click)="cargar()">Reintentar</button>
+    </div>
+  }
+
+  <div class="grid gap-4 sm:grid-cols-3">
+    <article class="card flex items-center gap-4 p-5">
+      <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+        <app-icon name="warning" />
+      </span>
+      <div>
+        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Productos críticos</p>
+        <p class="text-2xl font-bold text-slate-900">{{ productos().length | number }}</p>
+      </div>
+    </article>
+
+    <article class="card flex items-center gap-4 p-5">
+      <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+        <app-icon name="archive" />
+      </span>
+      <div>
+        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Sin existencias</p>
+        <p class="text-2xl font-bold text-slate-900">{{ sinExistencias() | number }}</p>
+      </div>
+    </article>
+
+    <article class="card flex items-center gap-4 p-5">
+      <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-50 text-teal-600">
+        <app-icon name="chart" />
+      </span>
+      <div>
+        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Déficit total</p>
+        <p class="text-2xl font-bold text-slate-900">{{ deficitTotal() | number }}</p>
+      </div>
+    </article>
+  </div>
+
+  <section class="card overflow-hidden">
+    <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p class="text-sm font-semibold text-slate-800">Productos en nivel crítico</p>
+        <p class="text-xs text-slate-500">{{ filtrados().length }} resultado(s)</p>
+      </div>
+      <div class="relative">
+        <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
+          <app-icon name="search" class="scale-90" />
+        </span>
+        <input
+          type="search"
+          class="field-input py-2 pl-10 text-sm sm:w-64"
+          placeholder="Buscar producto o categoría…"
+          [value]="busqueda()"
+          (input)="onBuscar($event)"
+          aria-label="Buscar productos con stock bajo"
+        />
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-100">
+        <thead class="bg-slate-50/70">
+          <tr>
+            <th class="table-th">Producto</th>
+            <th class="table-th">Categoría</th>
+            <th class="table-th">Stock actual</th>
+            <th class="table-th">Stock mínimo</th>
+            <th class="table-th">Déficit</th>
+            <th class="table-th">Cobertura</th>
+            <th class="table-th text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 bg-white">
+          @if (cargando()) {
+            @for (fila of [1, 2, 3, 4]; track fila) {
+              <tr class="animate-pulse">
+                <td class="table-td"><div class="h-3 w-44 rounded bg-slate-200"></div></td>
+                <td class="table-td"><div class="h-3 w-24 rounded bg-slate-100"></div></td>
+                <td class="table-td"><div class="h-3 w-16 rounded bg-slate-200"></div></td>
+                <td class="table-td"><div class="h-3 w-12 rounded bg-slate-100"></div></td>
+                <td class="table-td"><div class="h-3 w-12 rounded bg-slate-100"></div></td>
+                <td class="table-td"><div class="h-2 w-24 rounded-full bg-slate-100"></div></td>
+                <td class="table-td"><div class="ml-auto h-7 w-20 rounded bg-slate-100"></div></td>
+              </tr>
+            }
+          } @else {
+            @for (producto of filtrados(); track producto.id_producto) {
+              <tr class="transition hover:bg-amber-50/40">
+                <td class="table-td">
+                  <div class="flex items-center gap-3">
+                    <span
+                      class="flex h-9 w-9 items-center justify-center rounded-xl"
+                      [class]="
+                        producto.stock_actual <= 0
+                          ? 'bg-red-50 text-red-600'
+                          : 'bg-amber-50 text-amber-600'
+                      "
+                    >
+                      <app-icon name="cube" class="scale-90" />
+                    </span>
+                    <div class="min-w-0">
+                      <p class="max-w-56 truncate font-semibold text-slate-800">{{ producto.nombre }}</p>
+                      <p class="font-mono text-xs text-slate-400">{{ producto.codigo }}</p>
+                    </div>
+                  </div>
+                </td>
+                <td class="table-td">
+                  <span class="badge bg-slate-100 text-slate-600">{{ producto.categoria }}</span>
+                </td>
+                <td class="table-td">
+                  <span
+                    class="badge"
+                    [class]="
+                      producto.stock_actual <= 0
+                        ? 'bg-red-50 text-red-700 ring-1 ring-red-600/15'
+                        : 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/15'
+                    "
+                  >
+                    {{ producto.stock_actual | number }} {{ producto.unidad_medida }}
+                  </span>
+                </td>
+                <td class="table-td text-slate-500">{{ producto.stock_minimo | number }}</td>
+                <td class="table-td">
+                  <span class="font-semibold text-red-600">
+                    {{ producto.stock_minimo - producto.stock_actual | number }}
+                  </span>
+                </td>
+                <td class="table-td">
+                  <div class="flex items-center gap-2">
+                    <div class="h-2 w-24 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        class="h-full rounded-full"
+                        [class]="cobertura(producto) <= 25 ? 'bg-red-500' : 'bg-amber-500'"
+                        [style.width.%]="cobertura(producto)"
+                      ></div>
+                    </div>
+                    <span class="text-xs font-semibold text-slate-500">{{ cobertura(producto) }}%</span>
+                  </div>
+                </td>
+                <td class="table-td">
+                  <div class="flex justify-end">
+                    <a
+                      [routerLink]="['/entradas/nueva']"
+                      [queryParams]="{ producto: producto.id_producto }"
+                      class="btn-primary py-1.5 text-xs"
+                    >
+                      <app-icon name="plus" class="scale-75" />
+                      Reponer
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (!cargando() && filtrados().length === 0) {
+      <div class="flex flex-col items-center justify-center px-6 py-16 text-center">
+        <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-500">
+          <app-icon name="check-circle" class="scale-150" />
+        </span>
+        <h3 class="mt-4 text-base font-semibold text-slate-800">
+          {{ busqueda() ? 'Sin coincidencias' : 'No hay productos con stock bajo' }}
+        </h3>
+        <p class="mt-1 max-w-sm text-sm text-slate-500">
+          @if (busqueda()) {
+            No se encontraron productos para "{{ busqueda() }}".
+          } @else {
+            Todas las existencias se encuentran por encima de su nivel mínimo configurado.
+          }
+        </p>
+        <a routerLink="/productos" class="btn-secondary mt-5">
+          <app-icon name="cube" />
+          Revisar catálogo
+        </a>
+      </div>
+    }
+  </section>
+</div>

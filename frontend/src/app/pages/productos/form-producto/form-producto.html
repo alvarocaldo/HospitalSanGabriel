@@ -1,0 +1,224 @@
+<div class="mx-auto max-w-4xl space-y-6">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <a routerLink="/productos" class="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 transition hover:text-teal-600">
+        <app-icon name="arrow-left" class="scale-75" />
+        Volver al catálogo
+      </a>
+      <h2 class="mt-3 text-2xl font-bold tracking-tight text-slate-900">
+        {{ esEdicion ? 'Editar producto' : 'Nuevo producto' }}
+      </h2>
+      <p class="mt-1 text-sm text-slate-500">
+        {{ esEdicion ? 'Actualice los datos del insumo seleccionado.' : 'Registre un nuevo insumo en el catálogo hospitalario.' }}
+      </p>
+    </div>
+    <span class="badge w-fit bg-teal-50 text-teal-700 ring-1 ring-teal-600/15">
+      {{ esEdicion ? 'Modo edición' : 'Alta de producto' }}
+    </span>
+  </div>
+
+  @if (error()) {
+    <div
+      class="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+      role="alert"
+    >
+      <app-icon name="x-circle" class="mt-0.5 text-red-500" />
+      <p class="flex-1 font-medium">{{ error() }}</p>
+      <button type="button" class="text-red-500 hover:text-red-700" (click)="error.set(null)" aria-label="Cerrar">
+        <app-icon name="x" class="scale-75" />
+      </button>
+    </div>
+  }
+
+  @if (cargando()) {
+    <div class="card p-8">
+      <div class="mx-auto flex max-w-sm flex-col items-center gap-3 text-center">
+        <span class="h-9 w-9 animate-spin rounded-full border-4 border-teal-100 border-t-teal-600"></span>
+        <p class="text-sm font-medium text-slate-600">Cargando datos del producto…</p>
+      </div>
+    </div>
+  } @else {
+    <form [formRoot]="productoForm" class="card overflow-hidden">
+      <div class="border-b border-slate-100 bg-slate-50/60 px-6 py-5">
+        <h3 class="text-sm font-bold text-slate-800">Información del producto</h3>
+        <p class="mt-1 text-xs text-slate-500">
+          Los campos marcados con <span class="font-semibold text-red-500">*</span> son obligatorios.
+        </p>
+      </div>
+
+      <div class="grid gap-5 p-6 sm:grid-cols-2">
+        <div>
+          <label for="codigo" class="field-label">
+            Código <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="codigo"
+            type="text"
+            class="field-input font-mono uppercase"
+            placeholder="Ej. MED-001"
+            [formField]="productoForm.codigo"
+          />
+          <app-field-error
+            [errors]="productoForm.codigo().errors()"
+            [touched]="productoForm.codigo().touched()"
+          />
+        </div>
+
+        <div>
+          <label for="nombre" class="field-label">
+            Nombre <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="nombre"
+            type="text"
+            class="field-input"
+            placeholder="Ej. Paracetamol 500 mg"
+            [formField]="productoForm.nombre"
+          />
+          <app-field-error
+            [errors]="productoForm.nombre().errors()"
+            [touched]="productoForm.nombre().touched()"
+          />
+        </div>
+
+        <div class="sm:col-span-2">
+          <label for="descripcion" class="field-label">Descripción</label>
+          <textarea
+            id="descripcion"
+            rows="2"
+            class="field-input resize-none"
+            placeholder="Presentación, concentración u observaciones del insumo…"
+            [formField]="productoForm.descripcion"
+          ></textarea>
+          <app-field-error
+            [errors]="productoForm.descripcion().errors()"
+            [touched]="productoForm.descripcion().touched()"
+          />
+        </div>
+
+        <div>
+          <label for="categoria" class="field-label">
+            Categoría <span class="text-red-500">*</span>
+          </label>
+          <select id="categoria" class="field-input" [formField]="productoForm.id_categoria">
+            <option value="">Seleccione una categoría</option>
+            @for (categoria of categorias(); track categoria.id_categoria) {
+              <option [value]="categoria.id_categoria">{{ categoria.nombre }}</option>
+            }
+          </select>
+          <app-field-error
+            [errors]="productoForm.id_categoria().errors()"
+            [touched]="productoForm.id_categoria().touched()"
+          />
+        </div>
+
+        <div>
+          <label for="unidad" class="field-label">
+            Unidad de medida <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="unidad"
+            type="text"
+            class="field-input"
+            placeholder="Ej. caja, frasco, unidad"
+            [formField]="productoForm.unidad_medida"
+          />
+          <app-field-error
+            [errors]="productoForm.unidad_medida().errors()"
+            [touched]="productoForm.unidad_medida().touched()"
+          />
+        </div>
+
+        <div>
+          <label for="precio" class="field-label">
+            Precio unitario <span class="text-red-500">*</span>
+          </label>
+          <div class="relative">
+            <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-semibold text-slate-400">
+              $
+            </span>
+            <input
+              id="precio"
+              type="number"
+              step="0.01"
+              class="field-input pl-8"
+              placeholder="0.00"
+              [formField]="productoForm.precio_unitario"
+            />
+          </div>
+          <app-field-error
+            [errors]="productoForm.precio_unitario().errors()"
+            [touched]="productoForm.precio_unitario().touched()"
+          />
+        </div>
+
+        <div>
+          <label for="stock-minimo" class="field-label">
+            Stock mínimo <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="stock-minimo"
+            type="number"
+            step="1"
+            class="field-input"
+            placeholder="0"
+            [formField]="productoForm.stock_minimo"
+          />
+          <app-field-error
+            [errors]="productoForm.stock_minimo().errors()"
+            [touched]="productoForm.stock_minimo().touched()"
+          />
+          <p class="mt-1.5 text-xs text-slate-500">
+            Se generará una alerta cuando el stock llegue a este valor.
+          </p>
+        </div>
+
+        <div class="sm:col-span-2">
+          <div class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <label for="maneja-lote" class="flex cursor-pointer items-start gap-3">
+              <input
+                id="maneja-lote"
+                type="checkbox"
+                class="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                [formField]="productoForm.maneja_lote"
+              />
+              <span>
+                <span class="block text-sm font-semibold text-slate-800">Maneja lote</span>
+                <span class="block text-xs text-slate-500">
+                  Active esta opción para exigir número de lote y fecha de vencimiento en las entradas.
+                </span>
+              </span>
+            </label>
+
+            <div class="w-full sm:max-w-56">
+              <label for="vencimiento" class="field-label">Fecha de vencimiento</label>
+              <input
+                id="vencimiento"
+                type="date"
+                class="field-input"
+                [formField]="productoForm.fecha_vencimiento"
+              />
+              <app-field-error
+                [errors]="productoForm.fecha_vencimiento().errors()"
+                [touched]="productoForm.fecha_vencimiento().touched()"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col-reverse gap-3 border-t border-slate-100 bg-slate-50/60 px-6 py-4 sm:flex-row sm:justify-end">
+        <a routerLink="/productos" class="btn-secondary">Cancelar</a>
+        <button type="submit" class="btn-primary" [disabled]="productoForm().submitting()">
+          @if (productoForm().submitting()) {
+            <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+            Guardando…
+          } @else {
+            <app-icon name="check-circle" />
+            {{ esEdicion ? 'Guardar cambios' : 'Crear producto' }}
+          }
+        </button>
+      </div>
+    </form>
+  }
+</div>

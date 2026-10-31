@@ -1,0 +1,216 @@
+<div class="space-y-6">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-orange-600">
+        <span class="h-1.5 w-1.5 rounded-full bg-orange-500"></span>
+        Alertas sanitarias
+      </div>
+      <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">Vencimientos</h2>
+      <p class="mt-1 text-sm text-slate-500">
+        Controle los lotes próximos a vencer y los insumos que ya superaron su fecha de caducidad.
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" class="btn-secondary" [disabled]="cargando()" (click)="cargar()">
+        <app-icon name="arrow-down-tray" [class.animate-spin]="cargando()" />
+        Actualizar
+      </button>
+      <a routerLink="/alertas/stock-bajo" class="btn-secondary">
+        <app-icon name="warning" />
+        Stock bajo
+      </a>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div
+      class="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+      role="alert"
+    >
+      <app-icon name="x-circle" class="mt-0.5 text-red-500" />
+      <p class="flex-1 font-medium">{{ error() }}</p>
+      <button type="button" class="text-xs font-semibold underline" (click)="cargar()">Reintentar</button>
+    </div>
+  }
+
+  <div class="grid gap-4 sm:grid-cols-3">
+    <article class="card flex items-center gap-4 p-5">
+      <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
+        <app-icon name="clock" />
+      </span>
+      <div>
+        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Próximos a vencer</p>
+        <p class="text-2xl font-bold text-slate-900">{{ proximos().length | number }}</p>
+        <p class="text-xs text-slate-500">en los próximos {{ dias() }} días</p>
+      </div>
+    </article>
+
+    <article class="card flex items-center gap-4 p-5">
+      <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+        <app-icon name="archive" />
+      </span>
+      <div>
+        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Vencidos</p>
+        <p class="text-2xl font-bold text-slate-900">{{ vencidos().length | number }}</p>
+        <p class="text-xs text-slate-500">requieren disposición</p>
+      </div>
+    </article>
+
+    <article class="card flex items-center gap-4 p-5">
+      <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+        <app-icon name="warning" />
+      </span>
+      <div>
+        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Críticos</p>
+        <p class="text-2xl font-bold text-slate-900">{{ criticosSieteDias() | number }}</p>
+        <p class="text-xs text-slate-500">vencen en 7 días o menos</p>
+      </div>
+    </article>
+  </div>
+
+  <section class="card overflow-hidden">
+    <div class="flex flex-col gap-4 border-b border-slate-100 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+      <div class="inline-flex w-fit rounded-xl bg-slate-100 p-1">
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition"
+          [class]="pestana() === 'proximos' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+          (click)="cambiarPestana('proximos')"
+        >
+          <app-icon name="clock" class="scale-90" />
+          Próximos
+          <span class="badge bg-orange-50 text-orange-700">{{ proximos().length }}</span>
+        </button>
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition"
+          [class]="pestana() === 'vencidos' ? 'bg-white text-red-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+          (click)="cambiarPestana('vencidos')"
+        >
+          <app-icon name="archive" class="scale-90" />
+          Vencidos
+          <span class="badge bg-red-50 text-red-700">{{ vencidos().length }}</span>
+        </button>
+      </div>
+
+      @if (pestana() === 'proximos') {
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Ventana</span>
+          @for (opcion of opcionesDias; track opcion) {
+            <button
+              type="button"
+              class="badge transition"
+              [class]="dias() === opcion ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+              (click)="cambiarDias(opcion)"
+            >
+              {{ opcion }} días
+            </button>
+          }
+        </div>
+      } @else {
+        <span class="badge w-fit bg-red-50 text-red-700 ring-1 ring-red-600/15">
+          Productos que no deben utilizarse
+        </span>
+      }
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-100">
+        <thead class="bg-slate-50/70">
+          <tr>
+            <th class="table-th">Producto</th>
+            <th class="table-th">Categoría</th>
+            <th class="table-th">Lote</th>
+            <th class="table-th">Vencimiento</th>
+            <th class="table-th">{{ pestana() === 'vencidos' ? 'Vencido hace' : 'Días restantes' }}</th>
+            <th class="table-th">Stock</th>
+            <th class="table-th">Origen</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 bg-white">
+          @if (cargando()) {
+            @for (fila of [1, 2, 3, 4]; track fila) {
+              <tr class="animate-pulse">
+                <td class="table-td"><div class="h-3 w-44 rounded bg-slate-200"></div></td>
+                <td class="table-td"><div class="h-3 w-24 rounded bg-slate-100"></div></td>
+                <td class="table-td"><div class="h-5 w-20 rounded-full bg-slate-100"></div></td>
+                <td class="table-td"><div class="h-3 w-20 rounded bg-slate-200"></div></td>
+                <td class="table-td"><div class="h-5 w-20 rounded-full bg-slate-100"></div></td>
+                <td class="table-td"><div class="h-3 w-12 rounded bg-slate-100"></div></td>
+                <td class="table-td"><div class="h-3 w-16 rounded bg-slate-100"></div></td>
+              </tr>
+            }
+          } @else {
+            @for (fila of filas(); track fila.id) {
+              <tr class="transition" [class]="fila.vencido ? 'bg-red-50/40 hover:bg-red-50/70' : 'hover:bg-slate-50/70'">
+                <td class="table-td">
+                  <div class="flex items-center gap-3">
+                    <span
+                      class="flex h-9 w-9 items-center justify-center rounded-xl"
+                      [class]="fila.vencido ? 'bg-red-50 text-red-600' : 'bg-orange-50 text-orange-600'"
+                    >
+                      <app-icon name="cube" class="scale-90" />
+                    </span>
+                    <div class="min-w-0">
+                      <p class="max-w-56 truncate font-semibold text-slate-800">{{ fila.nombre }}</p>
+                      <p class="font-mono text-xs text-slate-400">{{ fila.codigo }}</p>
+                    </div>
+                  </div>
+                </td>
+                <td class="table-td">
+                  <span class="badge bg-slate-100 text-slate-600">{{ fila.categoria }}</span>
+                </td>
+                <td class="table-td">
+                  @if (fila.numero_lote) {
+                    <span class="badge bg-cyan-50 font-mono text-cyan-700">{{ fila.numero_lote }}</span>
+                  } @else {
+                    <span class="text-xs text-slate-400">Sin lote</span>
+                  }
+                </td>
+                <td class="table-td font-medium text-slate-700">
+                  {{ fila.fecha_vencimiento | date: 'dd/MM/yyyy' }}
+                </td>
+                <td class="table-td">
+                  <span class="badge" [class]="fila.vencido ? 'bg-red-50 text-red-700 ring-1 ring-red-600/15' : severidad(fila.dias)">
+                    {{ fila.dias }} {{ fila.dias === 1 ? 'día' : 'días' }}
+                  </span>
+                </td>
+                <td class="table-td">
+                  <span class="font-semibold text-slate-700">{{ fila.stock_actual | number }}</span>
+                </td>
+                <td class="table-td">
+                  <span class="badge bg-slate-100 text-slate-600">{{ fila.origen }}</span>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (!cargando() && filas().length === 0) {
+      <div class="flex flex-col items-center justify-center px-6 py-16 text-center">
+        <span
+          class="flex h-16 w-16 items-center justify-center rounded-2xl"
+          [class]="pestana() === 'vencidos' ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-500'"
+        >
+          <app-icon [name]="pestana() === 'vencidos' ? 'archive' : 'check-circle'" class="scale-150" />
+        </span>
+        <h3 class="mt-4 text-base font-semibold text-slate-800">
+          {{ pestana() === 'vencidos' ? 'No hay productos vencidos' : 'No hay vencimientos próximos' }}
+        </h3>
+        <p class="mt-1 max-w-sm text-sm text-slate-500">
+          @if (pestana() === 'vencidos') {
+            Ningún insumo del inventario ha superado su fecha de caducidad.
+          } @else {
+            No se encontraron lotes que venzan en los próximos {{ dias() }} días.
+          }
+        </p>
+        <a routerLink="/movimientos" class="btn-secondary mt-5">
+          <app-icon name="clipboard" />
+          Revisar movimientos
+        </a>
+      </div>
+    }
+  </section>
+</div>

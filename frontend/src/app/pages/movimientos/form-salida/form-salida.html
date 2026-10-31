@@ -1,0 +1,353 @@
+<div class="mx-auto max-w-6xl space-y-6">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <a
+        routerLink="/movimientos"
+        class="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 transition hover:text-teal-600"
+      >
+        <app-icon name="arrow-left" class="scale-75" />
+        Volver a movimientos
+      </a>
+      <h2 class="mt-3 text-2xl font-bold tracking-tight text-slate-900">Registrar salida</h2>
+      <p class="mt-1 text-sm text-slate-500">
+        Despache insumos hacia un área hospitalaria y descuente el stock disponible.
+      </p>
+    </div>
+    <span class="badge w-fit bg-cyan-50 text-cyan-700 ring-1 ring-cyan-600/15">
+      <app-icon name="arrow-up-tray" class="scale-75" />
+      Despacho de stock
+    </span>
+  </div>
+
+  @if (success()) {
+    <div
+      class="flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 sm:flex-row sm:items-center"
+      role="status"
+    >
+      <app-icon name="check-circle" class="mt-0.5 shrink-0 text-emerald-600 sm:mt-0" />
+      <p class="flex-1 font-medium">{{ success() }}</p>
+      <div class="flex shrink-0 gap-2">
+        <a routerLink="/movimientos" class="btn-secondary py-1.5 text-xs">Ver movimientos</a>
+        <button
+          type="button"
+          class="btn-ghost text-emerald-700 hover:bg-emerald-100"
+          (click)="success.set(null)"
+          aria-label="Cerrar"
+        >
+          <app-icon name="x" class="scale-75" />
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (errorStock()) {
+    <div
+      class="flex items-start gap-3 rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800"
+      role="alert"
+    >
+      <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
+        <app-icon name="warning" class="scale-90" />
+      </span>
+      <div class="flex-1">
+        <p class="font-bold">Stock insuficiente</p>
+        <p class="mt-0.5 text-red-700">{{ errorStock() }}</p>
+        <p class="mt-1 text-xs text-red-600">
+          Ajuste la cantidad solicitada o registre primero una entrada de stock.
+        </p>
+      </div>
+      <div class="flex shrink-0 items-center gap-2">
+        <a routerLink="/entradas/nueva" class="btn-secondary py-1.5 text-xs">Registrar entrada</a>
+        <button
+          type="button"
+          class="text-red-500 hover:text-red-700"
+          (click)="errorStock.set(null)"
+          aria-label="Cerrar"
+        >
+          <app-icon name="x" class="scale-75" />
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (error()) {
+    <div
+      class="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+      role="alert"
+    >
+      <app-icon name="x-circle" class="mt-0.5 text-red-500" />
+      <p class="flex-1 font-medium">{{ error() }}</p>
+      <button type="button" class="text-red-500 hover:text-red-700" (click)="error.set(null)" aria-label="Cerrar">
+        <app-icon name="x" class="scale-75" />
+      </button>
+    </div>
+  }
+
+  <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <form [formRoot]="salidaForm" class="card overflow-hidden">
+      <div class="border-b border-slate-100 bg-slate-50/60 px-6 py-5">
+        <h3 class="text-sm font-bold text-slate-800">Datos de la salida</h3>
+        <p class="mt-1 text-xs text-slate-500">
+          Los campos marcados con <span class="font-semibold text-red-500">*</span> son obligatorios.
+        </p>
+      </div>
+
+      <div class="space-y-5 p-6">
+        <div>
+          <label for="salida-producto" class="field-label">
+            Producto <span class="text-red-500">*</span>
+          </label>
+          <select
+            id="salida-producto"
+            class="field-input"
+            [formField]="salidaForm.id_producto"
+            (change)="onProductoChange($event)"
+          >
+            <option value="">
+              {{ cargandoCatalogos() ? 'Cargando productos…' : 'Seleccione un producto' }}
+            </option>
+            @for (producto of productos(); track producto.id_producto) {
+              <option [value]="producto.id_producto">
+                {{ producto.codigo }} · {{ producto.nombre }} (stock: {{ producto.stock_actual }})
+              </option>
+            }
+          </select>
+          <app-field-error
+            [errors]="salidaForm.id_producto().errors()"
+            [touched]="salidaForm.id_producto().touched()"
+          />
+        </div>
+
+        <div class="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label for="salida-cantidad" class="field-label">
+              Cantidad <span class="text-red-500">*</span>
+            </label>
+            <div class="relative">
+              <input
+                id="salida-cantidad"
+                type="number"
+                step="1"
+                class="field-input pr-24"
+                placeholder="0"
+                [formField]="salidaForm.cantidad"
+              />
+              <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-slate-400">
+                {{ productoSeleccionado()?.unidad_medida || 'unidades' }}
+              </span>
+            </div>
+            <app-field-error
+              [errors]="salidaForm.cantidad().errors()"
+              [touched]="salidaForm.cantidad().touched()"
+            />
+            @if (productoSeleccionado(); as producto) {
+              <p class="mt-1.5 text-xs text-slate-500">
+                Disponible: <span class="font-semibold text-slate-700">{{ producto.stock_actual | number }}</span>
+                {{ producto.unidad_medida }}
+              </p>
+            }
+          </div>
+
+          <div>
+            <label for="salida-area" class="field-label">
+              Área de destino <span class="text-red-500">*</span>
+            </label>
+            <select
+              id="salida-area"
+              class="field-input"
+              [formField]="salidaForm.id_area"
+            >
+              <option value="">Seleccione un área</option>
+              @for (area of areas(); track area.id_area) {
+                <option [value]="area.id_area">{{ area.nombre }}</option>
+              }
+            </select>
+            <app-field-error
+              [errors]="salidaForm.id_area().errors()"
+              [touched]="salidaForm.id_area().touched()"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label for="salida-motivo" class="field-label">
+            Motivo <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="salida-motivo"
+            type="text"
+            class="field-input"
+            placeholder="Ej. Consumo de urgencias"
+            [formField]="salidaForm.motivo"
+          />
+          <app-field-error
+            [errors]="salidaForm.motivo().errors()"
+            [touched]="salidaForm.motivo().touched()"
+          />
+        </div>
+
+        @if (manejaLote()) {
+          <div class="rounded-2xl border border-cyan-200 bg-cyan-50/60 p-4">
+            <div class="flex items-start gap-3">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-cyan-600 shadow-sm">
+                <app-icon name="tag" class="scale-90" />
+              </span>
+              <div class="flex-1">
+                <p class="text-sm font-semibold text-slate-800">Selección de lote (opcional)</p>
+                <p class="text-xs text-slate-500">
+                  Si no elige un lote, el sistema aplicará FEFO (primero en vencer, primero en salir).
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <label for="salida-lote" class="field-label">Lote</label>
+              <select
+                id="salida-lote"
+                class="field-input"
+                [formField]="salidaForm.id_lote"
+              >
+                <option value="">
+                  {{ cargandoLotes() ? 'Cargando lotes…' : 'Aplicar FEFO automáticamente' }}
+                </option>
+                @for (lote of lotesDisponibles(); track lote.id_lote) {
+                  <option [value]="lote.id_lote">
+                    {{ lote.numero_lote }} · vence {{ lote.fecha_vencimiento }} · disponible:
+                    {{ lote.cantidad_actual }}
+                  </option>
+                }
+              </select>
+              <app-field-error
+                [errors]="salidaForm.id_lote().errors()"
+                [touched]="salidaForm.id_lote().touched()"
+              />
+              @if (!cargandoLotes() && lotesDisponibles().length === 0) {
+                <p class="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-amber-700">
+                  <app-icon name="warning" class="scale-75" />
+                  No hay lotes vigentes con stock disponible. Se aplicará FEFO sobre el stock general.
+                </p>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="flex flex-col-reverse gap-3 border-t border-slate-100 bg-slate-50/60 px-6 py-4 sm:flex-row sm:justify-end">
+        <a routerLink="/movimientos" class="btn-secondary">Cancelar</a>
+        <button type="submit" class="btn-primary" [disabled]="salidaForm().submitting()">
+          @if (salidaForm().submitting()) {
+            <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+            Registrando…
+          } @else {
+            <app-icon name="arrow-up-tray" />
+            Registrar salida
+          }
+        </button>
+      </div>
+    </form>
+
+    <aside class="space-y-4">
+      <section class="card overflow-hidden">
+        <div class="border-b border-slate-100 bg-slate-50/60 px-5 py-4">
+          <h3 class="text-sm font-bold text-slate-800">Disponibilidad</h3>
+        </div>
+
+        @if (productoSeleccionado(); as producto) {
+          <div class="space-y-4 p-5">
+            <div class="flex items-start gap-3">
+              <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600">
+                <app-icon name="cube" />
+              </span>
+              <div class="min-w-0">
+                <p class="truncate font-semibold text-slate-800">{{ producto.nombre }}</p>
+                <p class="font-mono text-xs text-slate-500">{{ producto.codigo }}</p>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between text-xs font-semibold">
+                <span class="text-slate-500">Consumo del stock</span>
+                <span
+                  [class]="
+                    porcentajeConsumo() >= 100
+                      ? 'text-red-600'
+                      : porcentajeConsumo() >= 70
+                        ? 'text-amber-600'
+                        : 'text-teal-600'
+                  "
+                >
+                  {{ porcentajeConsumo() }}%
+                </span>
+              </div>
+              <div class="mt-2 h-2.5 overflow-hidden rounded-full bg-slate-100">
+                <div
+                  class="h-full rounded-full transition-all duration-300"
+                  [class]="
+                    porcentajeConsumo() >= 100
+                      ? 'bg-red-500'
+                      : porcentajeConsumo() >= 70
+                        ? 'bg-amber-500'
+                        : 'bg-gradient-to-r from-teal-500 to-cyan-500'
+                  "
+                  [style.width.%]="porcentajeConsumo()"
+                ></div>
+              </div>
+            </div>
+
+            <dl class="space-y-2 text-sm">
+              <div class="flex items-center justify-between gap-3">
+                <dt class="text-slate-500">Stock disponible</dt>
+                <dd class="font-semibold text-slate-900">
+                  {{ producto.stock_actual | number }} {{ producto.unidad_medida }}
+                </dd>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <dt class="text-slate-500">Stock mínimo</dt>
+                <dd class="font-semibold text-slate-700">{{ producto.stock_minimo | number }}</dd>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <dt class="text-slate-500">Categoría</dt>
+                <dd class="font-semibold text-slate-700">{{ producto.categoria }}</dd>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <dt class="text-slate-500">Lotes vigentes</dt>
+                <dd class="font-semibold text-slate-700">{{ lotesDisponibles().length }}</dd>
+              </div>
+            </dl>
+
+            @if (producto.stock_actual <= producto.stock_minimo) {
+              <div class="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                <app-icon name="warning" class="mt-0.5 shrink-0 text-amber-600" />
+                <span>El stock está en nivel crítico. Revise las alertas de inventario.</span>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="flex flex-col items-center px-5 py-10 text-center">
+            <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+              <app-icon name="cube" />
+            </span>
+            <p class="mt-3 text-sm font-medium text-slate-600">Ningún producto seleccionado</p>
+            <p class="mt-1 text-xs text-slate-500">
+              Elija un insumo para consultar su disponibilidad antes del despacho.
+            </p>
+          </div>
+        }
+      </section>
+
+      <section class="rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-sky-50 p-5">
+        <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-cyan-700">
+          <app-icon name="clipboard" class="scale-90" />
+          Trazabilidad
+        </div>
+        <p class="mt-2 text-xs leading-relaxed text-slate-600">
+          Cada salida registra el área de destino, el usuario responsable y el stock anterior y
+          posterior para auditoría.
+        </p>
+        <a routerLink="/reportes/salidas" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-cyan-700 hover:text-cyan-800">
+          Ver reporte de salidas
+          <span aria-hidden="true">→</span>
+        </a>
+      </section>
+    </aside>
+  </div>
+</div>

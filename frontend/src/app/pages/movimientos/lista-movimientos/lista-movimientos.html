@@ -1,0 +1,326 @@
+<div class="space-y-6">
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-teal-600">
+        <span class="h-1.5 w-1.5 rounded-full bg-teal-500"></span>
+        Trazabilidad
+      </div>
+      <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">Movimientos</h2>
+      <p class="mt-1 text-sm text-slate-500">
+        Historial completo de entradas y salidas con stock anterior y posterior.
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a routerLink="/entradas/nueva" class="btn-primary">
+        <app-icon name="arrow-down-tray" />
+        Nueva entrada
+      </a>
+      <a routerLink="/salidas/nueva" class="btn-secondary">
+        <app-icon name="arrow-up-tray" />
+        Nueva salida
+      </a>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div
+      class="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+      role="alert"
+    >
+      <app-icon name="x-circle" class="mt-0.5 text-red-500" />
+      <p class="flex-1 font-medium">{{ error() }}</p>
+      <button type="button" class="text-red-500 hover:text-red-700" (click)="error.set(null)" aria-label="Cerrar">
+        <app-icon name="x" class="scale-75" />
+      </button>
+    </div>
+  }
+
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <article class="card flex items-center gap-4 p-5">
+      <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+        <app-icon name="clipboard" />
+      </span>
+      <div>
+        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Movimientos</p>
+        <p class="text-2xl font-bold text-slate-900">{{ movimientos().length | number }}</p>
+      </div>
+    </article>
+
+    <article class="card flex items-center gap-4 p-5">
+      <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+        <app-icon name="arrow-down-tray" />
+      </span>
+      <div>
+        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Entradas</p>
+        <p class="text-2xl font-bold text-slate-900">{{ totalEntradas() | number }}</p>
+      </div>
+    </article>
+
+    <article class="card flex items-center gap-4 p-5">
+      <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600">
+        <app-icon name="arrow-up-tray" />
+      </span>
+      <div>
+        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Salidas</p>
+        <p class="text-2xl font-bold text-slate-900">{{ totalSalidas() | number }}</p>
+      </div>
+    </article>
+
+    <article class="card flex items-center gap-4 p-5">
+      <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+        <app-icon name="cube" />
+      </span>
+      <div>
+        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Unidades movidas</p>
+        <p class="text-2xl font-bold text-slate-900">{{ totalUnidades() | number }}</p>
+      </div>
+    </article>
+  </div>
+
+  <section class="card p-4 sm:p-5">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="mr-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Rango</span>
+      <button
+        type="button"
+        class="badge transition"
+        [class]="rangoActivo() === 'hoy' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+        (click)="aplicarRango('hoy')"
+      >
+        Hoy
+      </button>
+      <button
+        type="button"
+        class="badge transition"
+        [class]="rangoActivo() === '7dias' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+        (click)="aplicarRango('7dias')"
+      >
+        Últimos 7 días
+      </button>
+      <button
+        type="button"
+        class="badge transition"
+        [class]="rangoActivo() === 'mes' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+        (click)="aplicarRango('mes')"
+      >
+        Este mes
+      </button>
+      <button
+        type="button"
+        class="badge transition"
+        [class]="rangoActivo() === 'todo' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+        (click)="aplicarRango('todo')"
+      >
+        Todo el historial
+      </button>
+    </div>
+
+    <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[180px_minmax(0,1fr)_160px_160px_auto] xl:items-center">
+      <select class="field-input" (change)="onTipoChange($event)" aria-label="Filtrar por tipo de movimiento">
+        <option value="" [selected]="tipo() === ''">Todos los tipos</option>
+        <option value="ENTRADA" [selected]="tipo() === 'ENTRADA'">Entradas</option>
+        <option value="SALIDA" [selected]="tipo() === 'SALIDA'">Salidas</option>
+      </select>
+
+      <select class="field-input" (change)="onProductoChange($event)" aria-label="Filtrar por producto">
+        <option value="">Todos los productos</option>
+        @for (producto of productos(); track producto.id_producto) {
+          <option [value]="producto.id_producto" [selected]="idProducto() === producto.id_producto">
+            {{ producto.codigo }} · {{ producto.nombre }}
+          </option>
+        }
+      </select>
+
+      <div>
+        <label for="mov-desde" class="sr-only">Fecha desde</label>
+        <input
+          id="mov-desde"
+          type="date"
+          class="field-input"
+          title="Fecha desde"
+          [value]="fechaDesde()"
+          (change)="onFechaDesdeChange($event)"
+        />
+      </div>
+
+      <div>
+        <label for="mov-hasta" class="sr-only">Fecha hasta</label>
+        <input
+          id="mov-hasta"
+          type="date"
+          class="field-input"
+          title="Fecha hasta"
+          [value]="fechaHasta()"
+          (change)="onFechaHastaChange($event)"
+        />
+      </div>
+
+      <div class="flex gap-2">
+        <button type="button" class="btn-secondary flex-1 xl:flex-none" (click)="limpiarFiltros()">
+          Limpiar
+        </button>
+        <button
+          type="button"
+          class="btn-ghost"
+          (click)="cargarMovimientos()"
+          [disabled]="cargando()"
+          title="Actualizar"
+        >
+          <app-icon name="arrow-down-tray" [class.animate-spin]="cargando()" />
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card overflow-hidden">
+    <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+      <div>
+        <p class="text-sm font-semibold text-slate-800">Historial de movimientos</p>
+        <p class="text-xs text-slate-500">
+          {{ movimientos().length }} registro(s) · ordenados por fecha descendente
+        </p>
+      </div>
+      <span class="badge bg-slate-100 text-slate-600">Auditoría</span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-100">
+        <thead class="bg-slate-50/70">
+          <tr>
+            <th class="table-th">Fecha</th>
+            <th class="table-th">Tipo</th>
+            <th class="table-th">Producto</th>
+            <th class="table-th">Categoría</th>
+            <th class="table-th">Cantidad</th>
+            <th class="table-th">Lote</th>
+            <th class="table-th">Motivo</th>
+            <th class="table-th">Área</th>
+            <th class="table-th">Stock</th>
+            <th class="table-th">Usuario</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 bg-white">
+          @if (cargando()) {
+            @for (fila of [1, 2, 3, 4, 5, 6]; track fila) {
+              <tr class="animate-pulse">
+                <td class="table-td"><div class="h-3 w-24 rounded bg-slate-200"></div></td>
+                <td class="table-td"><div class="h-5 w-16 rounded-full bg-slate-100"></div></td>
+                <td class="table-td"><div class="h-3 w-40 rounded bg-slate-200"></div></td>
+                <td class="table-td"><div class="h-3 w-20 rounded bg-slate-100"></div></td>
+                <td class="table-td"><div class="h-3 w-10 rounded bg-slate-100"></div></td>
+                <td class="table-td"><div class="h-3 w-16 rounded bg-slate-100"></div></td>
+                <td class="table-td"><div class="h-3 w-32 rounded bg-slate-100"></div></td>
+                <td class="table-td"><div class="h-3 w-20 rounded bg-slate-100"></div></td>
+                <td class="table-td"><div class="h-3 w-16 rounded bg-slate-100"></div></td>
+                <td class="table-td"><div class="h-3 w-20 rounded bg-slate-100"></div></td>
+              </tr>
+            }
+          } @else {
+            @for (movimiento of movimientos(); track movimiento.id_movimiento) {
+              <tr class="transition hover:bg-slate-50/70">
+                <td class="table-td">
+                  <p class="font-medium text-slate-700">{{ movimiento.fecha | date: 'dd/MM/yyyy' }}</p>
+                  <p class="text-xs text-slate-400">{{ movimiento.fecha | date: 'HH:mm' }}</p>
+                </td>
+                <td class="table-td">
+                  @if (movimiento.tipo === 'ENTRADA') {
+                    <span class="badge bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/10">
+                      <app-icon name="arrow-down-tray" class="scale-75" />
+                      Entrada
+                    </span>
+                  } @else {
+                    <span class="badge bg-cyan-50 text-cyan-700 ring-1 ring-cyan-600/10">
+                      <app-icon name="arrow-up-tray" class="scale-75" />
+                      Salida
+                    </span>
+                  }
+                </td>
+                <td class="table-td">
+                  <p class="max-w-52 truncate font-semibold text-slate-800">{{ movimiento.producto }}</p>
+                  <p class="font-mono text-xs text-slate-400">{{ movimiento.codigo }}</p>
+                </td>
+                <td class="table-td">
+                  <span class="badge bg-slate-100 text-slate-600">{{ movimiento.categoria }}</span>
+                </td>
+                <td class="table-td">
+                  <span
+                    class="font-bold"
+                    [class]="movimiento.tipo === 'ENTRADA' ? 'text-emerald-600' : 'text-cyan-700'"
+                  >
+                    {{ movimiento.tipo === 'ENTRADA' ? '+' : '−' }}{{ movimiento.cantidad | number }}
+                  </span>
+                </td>
+                <td class="table-td">
+                  @if (movimiento.numero_lote) {
+                    <span class="badge bg-cyan-50 font-mono text-cyan-700">
+                      {{ movimiento.numero_lote }}
+                    </span>
+                  } @else {
+                    <span class="text-xs text-slate-400">—</span>
+                  }
+                </td>
+                <td class="table-td">
+                  <p class="max-w-48 truncate text-slate-600" [title]="movimiento.motivo">
+                    {{ movimiento.motivo }}
+                  </p>
+                </td>
+                <td class="table-td">
+                  @if (movimiento.area) {
+                    <span class="text-slate-600">{{ movimiento.area }}</span>
+                  } @else {
+                    <span class="text-xs text-slate-400">—</span>
+                  }
+                </td>
+                <td class="table-td">
+                  <span class="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2 py-1 font-mono text-xs text-slate-600 ring-1 ring-slate-200">
+                    <span>{{ movimiento.stock_anterior }}</span>
+                    <span class="text-slate-400" aria-hidden="true">→</span>
+                    <span
+                      class="font-bold"
+                      [class]="
+                        movimiento.stock_posterior >= movimiento.stock_anterior
+                          ? 'text-emerald-600'
+                          : 'text-cyan-700'
+                      "
+                    >
+                      {{ movimiento.stock_posterior }}
+                    </span>
+                  </span>
+                </td>
+                <td class="table-td">
+                  <div class="flex items-center gap-2">
+                    <span class="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold uppercase text-slate-500">
+                      {{ movimiento.usuario.slice(0, 2) }}
+                    </span>
+                    <span class="max-w-32 truncate text-slate-600">{{ movimiento.usuario }}</span>
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (!cargando() && movimientos().length === 0) {
+      <div class="flex flex-col items-center justify-center px-6 py-16 text-center">
+        <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+          <app-icon name="clipboard" class="scale-150" />
+        </span>
+        <h3 class="mt-4 text-base font-semibold text-slate-800">No hay movimientos registrados</h3>
+        <p class="mt-1 max-w-sm text-sm text-slate-500">
+          Ajuste los filtros aplicados o registre una entrada o salida para comenzar el historial.
+        </p>
+        <div class="mt-5 flex flex-wrap justify-center gap-2">
+          <a routerLink="/entradas/nueva" class="btn-primary">
+            <app-icon name="arrow-down-tray" />
+            Nueva entrada
+          </a>
+          <a routerLink="/salidas/nueva" class="btn-secondary">
+            <app-icon name="arrow-up-tray" />
+            Nueva salida
+          </a>
+        </div>
+      </div>
+    }
+  </section>
+</div>

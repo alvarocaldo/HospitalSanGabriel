@@ -1,0 +1,222 @@
+<div class="space-y-6">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-teal-600">
+        <span class="h-1.5 w-1.5 rounded-full bg-teal-500"></span>
+        Catálogo
+      </div>
+      <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">Categorías</h2>
+      <p class="mt-1 text-sm text-slate-500">
+        Organice los insumos del hospital en familias que faciliten su búsqueda y control.
+      </p>
+    </div>
+    <span class="badge w-fit bg-teal-50 text-teal-700 ring-1 ring-teal-600/15">
+      {{ categorias().length }} categoría(s) registrada(s)
+    </span>
+  </div>
+
+  @if (success()) {
+    <div
+      class="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+      role="status"
+    >
+      <app-icon name="check-circle" class="mt-0.5 text-emerald-600" />
+      <p class="flex-1 font-medium">{{ success() }}</p>
+      <button type="button" class="text-emerald-600 hover:text-emerald-800" (click)="success.set(null)" aria-label="Cerrar">
+        <app-icon name="x" class="scale-75" />
+      </button>
+    </div>
+  }
+
+  @if (error()) {
+    <div
+      class="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+      role="alert"
+    >
+      <app-icon name="x-circle" class="mt-0.5 text-red-500" />
+      <p class="flex-1 font-medium">{{ error() }}</p>
+      <button type="button" class="text-red-500 hover:text-red-700" (click)="error.set(null)" aria-label="Cerrar">
+        <app-icon name="x" class="scale-75" />
+      </button>
+    </div>
+  }
+
+  <div class="grid gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+    <section class="card overflow-hidden">
+      <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p class="text-sm font-semibold text-slate-800">Listado de categorías</p>
+          <p class="text-xs text-slate-500">{{ filtradas().length }} resultado(s)</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="relative">
+            <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
+              <app-icon name="search" class="scale-90" />
+            </span>
+            <input
+              type="search"
+              class="field-input py-2 pl-10 text-sm sm:w-56"
+              placeholder="Buscar categoría…"
+              [value]="busqueda()"
+              (input)="onBuscar($event)"
+              aria-label="Buscar categorías"
+            />
+          </div>
+          <button type="button" class="btn-ghost" (click)="cargar()" [disabled]="cargando()" title="Actualizar">
+            <app-icon name="arrow-down-tray" [class.animate-spin]="cargando()" />
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-100">
+          <thead class="bg-slate-50/70">
+            <tr>
+              <th class="table-th">Categoría</th>
+              <th class="table-th">Descripción</th>
+              <th class="table-th">Fecha de creación</th>
+              <th class="table-th">Estado</th>
+              <th class="table-th text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 bg-white">
+            @if (cargando()) {
+              @for (fila of [1, 2, 3, 4]; track fila) {
+                <tr class="animate-pulse">
+                  <td class="table-td"><div class="h-3 w-32 rounded bg-slate-200"></div></td>
+                  <td class="table-td"><div class="h-3 w-44 rounded bg-slate-100"></div></td>
+                  <td class="table-td"><div class="h-3 w-20 rounded bg-slate-100"></div></td>
+                  <td class="table-td"><div class="h-5 w-16 rounded-full bg-slate-100"></div></td>
+                  <td class="table-td"><div class="ml-auto h-7 w-16 rounded bg-slate-100"></div></td>
+                </tr>
+              }
+            } @else {
+              @for (categoria of filtradas(); track categoria.id_categoria) {
+                <tr class="transition hover:bg-slate-50/70" [class.bg-teal-50/40]="editando()?.id_categoria === categoria.id_categoria">
+                  <td class="table-td">
+                    <div class="flex items-center gap-3">
+                      <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+                        <app-icon name="tag" class="scale-90" />
+                      </span>
+                      <span class="font-semibold text-slate-800">{{ categoria.nombre }}</span>
+                    </div>
+                  </td>
+                  <td class="table-td max-w-64 truncate text-slate-500">
+                    {{ categoria.descripcion || 'Sin descripción' }}
+                  </td>
+                  <td class="table-td text-slate-500">
+                    {{ categoria.fecha_creacion | date: 'dd/MM/yyyy' }}
+                  </td>
+                  <td class="table-td">
+                    @if (categoria.activo) {
+                      <span class="badge bg-emerald-50 text-emerald-700">
+                        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                        Activa
+                      </span>
+                    } @else {
+                      <span class="badge bg-slate-100 text-slate-500">
+                        <span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span>
+                        Inactiva
+                      </span>
+                    }
+                  </td>
+                  <td class="table-td">
+                    <div class="flex justify-end">
+                      <button type="button" class="btn-ghost" (click)="editar(categoria)" title="Editar categoría">
+                        <app-icon name="pencil" class="scale-90" />
+                        <span class="hidden xl:inline">Editar</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (!cargando() && filtradas().length === 0) {
+        <div class="flex flex-col items-center justify-center px-6 py-14 text-center">
+          <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+            <app-icon name="tag" class="scale-150" />
+          </span>
+          <h3 class="mt-4 text-base font-semibold text-slate-800">No hay categorías para mostrar</h3>
+          <p class="mt-1 max-w-sm text-sm text-slate-500">
+            @if (busqueda()) {
+              No se encontraron coincidencias para "{{ busqueda() }}".
+            } @else {
+              Cree la primera categoría utilizando el formulario lateral.
+            }
+          </p>
+        </div>
+      }
+    </section>
+
+    <section class="card h-fit overflow-hidden xl:sticky xl:top-24">
+      <div class="border-b border-slate-100 bg-slate-50/60 px-5 py-4">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h3 class="text-sm font-bold text-slate-800">
+              {{ editando() ? 'Editar categoría' : 'Nueva categoría' }}
+            </h3>
+            <p class="mt-1 text-xs text-slate-500">
+              {{ editando() ? 'Modifique los datos de la categoría seleccionada.' : 'Agregue una nueva familia de insumos.' }}
+            </p>
+          </div>
+          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+            <app-icon [name]="editando() ? 'pencil' : 'plus'" />
+          </span>
+        </div>
+      </div>
+
+      <form [formRoot]="categoriaForm" class="space-y-4 p-5">
+        <div>
+          <label for="categoria-nombre" class="field-label">
+            Nombre <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="categoria-nombre"
+            type="text"
+            class="field-input"
+            placeholder="Ej. Medicamentos"
+            [formField]="categoriaForm.nombre"
+          />
+          <app-field-error
+            [errors]="categoriaForm.nombre().errors()"
+            [touched]="categoriaForm.nombre().touched()"
+          />
+        </div>
+
+        <div>
+          <label for="categoria-descripcion" class="field-label">Descripción</label>
+          <textarea
+            id="categoria-descripcion"
+            rows="3"
+            class="field-input resize-none"
+            placeholder="Describa el tipo de insumos que agrupa esta categoría…"
+            [formField]="categoriaForm.descripcion"
+          ></textarea>
+          <app-field-error
+            [errors]="categoriaForm.descripcion().errors()"
+            [touched]="categoriaForm.descripcion().touched()"
+          />
+        </div>
+
+        <div class="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+          @if (editando()) {
+            <button type="button" class="btn-secondary" (click)="cancelarEdicion()">Cancelar</button>
+          }
+          <button type="submit" class="btn-primary" [disabled]="categoriaForm().submitting()">
+            @if (categoriaForm().submitting()) {
+              <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+              Guardando…
+            } @else {
+              <app-icon name="check-circle" />
+              {{ editando() ? 'Guardar cambios' : 'Crear categoría' }}
+            }
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+</div>
